@@ -1,0 +1,1 @@
+Simple project to illustrate React.js concepts.

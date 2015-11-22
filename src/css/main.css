@@ -1,0 +1,14 @@
+.header {
+    background-color: #4679bd;
+    height: 30px;
+}
+
+.content { 
+    margin: 10px; 
+}
+
+.footer { 
+    margin-top: 50px; 
+    height: 5px; 
+    background-color: #4679bd; 
+}
