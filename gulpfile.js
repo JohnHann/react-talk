@@ -1,7 +1,6 @@
-// include gulp
 var gulp = require('gulp');
 
-// include gulp plugins
+// gulp plugins
 var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
@@ -16,8 +15,9 @@ var gutil = require('gulp-util');
 var shell = require('gulp-shell');
 var livereload = require('gulp-livereload');
 var jest = require('gulp-jest-iojs');
+var connect = require('gulp-connect');
 
-// include node modules
+// node modules
 var del = require('del');
 var path = require('path');
 var glob = require('glob');
@@ -34,11 +34,6 @@ var dependencies = [
     'react-dom'
 ];
 
-// deplopment directories
-var deployDir = './deploy/';
-var cssDeployDir = deployDir + 'css/';
-var jsDeployDir = deployDir + 'js/';
-
 // source directories
 var srcDir = './src/';
 var jsSrcDir = srcDir + 'js/**/*';
@@ -46,17 +41,30 @@ var jsRootFile = srcDir + 'js/main.jsx';
 var cssSrcDir = srcDir + 'css/**/*';
 var nodeSrcDir = './node_modules/';
 
-// build settings
+// deplopment directories
+var deployDir = './deploy/';
+var cssDeployDir = deployDir + 'css/';
+var jsDeployDir = deployDir + 'js/';
+
 var buildSettings = {
     development: true
 };
 
-// Starts our development workflow
 gulp.task('default', ['css', 'html', 'clean-js'], function () {
     browserifyTask({
-        src: jsRootFile,
-        dest: jsDeployDir,
         watch: false
+    });
+});
+
+// Starts our development workflow
+gulp.task('dev', ['css', 'html', 'clean-js'], function () {
+    browserifyTask({
+        watch: true
+    });
+    
+    connect.server({
+        root: 'deploy/',
+        port: 8889
     });
 });
 
@@ -64,7 +72,7 @@ gulp.task('default', ['css', 'html', 'clean-js'], function () {
 var browserifyTask = function (options) {
 
     var appBundler = browserify({
-        entries: [options.src], // this should be main.jsx, which should require everything
+        entries: [jsRootFile], // this should be main.jsx, which should require everything
         transform: [reactify], // compile JSX
         debug: buildSettings.development, // sourcemapping
         extensions: ['.jsx'], // allows us to require() jsx modules without specifying file extensions
@@ -94,7 +102,7 @@ var browserifyTask = function (options) {
                 )
             )
           )
-          .pipe(gulp.dest(options.dest))
+          .pipe(gulp.dest(jsDeployDir))
           .pipe(livereload())
           .pipe(notify(function () {
               gutil.log('Browserify: Main.js bundle built in ' + (Date.now() - start) + 'ms');
@@ -111,7 +119,7 @@ var browserifyTask = function (options) {
 
     // We create a separate bundle for our dependencies as they
     // should not rebundle on file changes. This only happens when
-    // we develop. When deploying the dependencies will be included 
+    // we develop. When deploying, the dependencies will be included 
     // in the application bundle
     if (buildSettings.development) {
 
@@ -137,7 +145,7 @@ var browserifyTask = function (options) {
                     )
                 )
             )
-            .pipe(gulp.dest(options.dest))
+            .pipe(gulp.dest(jsDeployDir))
             .pipe(notify(function () {
                 gutil.log('Browserify: Vendor.js bundle built in ' + (Date.now() - start) + 'ms');
             }));
