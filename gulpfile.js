@@ -25,6 +25,7 @@ var source = require('vinyl-source-stream');
 var browserify = require('browserify');
 var watchify = require('watchify');
 var reactify = require('reactify');
+var open = require('open');
 
 // External dependencies you do not want to rebundle while developing,
 // but need in your application deployment
@@ -51,28 +52,22 @@ var buildSettings = {
 };
 
 gulp.task('default', ['css', 'html', 'clean-js'], function () {
-    browserifyTask({
-        watch: false
-    });
+    browserifyTask({ watch: false });
 });
 
 // Starts our development workflow
-gulp.task('dev', ['css', 'html', 'clean-js'], function () {
-    browserifyTask({
-        watch: true
-    });
+gulp.task('dev', ['css', 'html', 'clean-js'], function () {        
+    gulp.watch(cssSrcDir, ['css']);
+    livereload.listen();
     
-    connect.server({
-        root: 'deploy/',
-        port: 8889
-    });
+    browserifyTask({ watch: true });
 });
 
 // based on react-app-boilerplate: https://github.com/christianalfoni/react-app-boilerplate
 var browserifyTask = function (options) {
 
     var appBundler = browserify({
-        entries: [jsRootFile], // this should be main.jsx, which should require everything
+        entries: [jsRootFile], // this js/jsx file should require everything needed by the app
         transform: [reactify], // compile JSX
         debug: buildSettings.development, // sourcemapping
         extensions: ['.jsx'], // allows us to require() jsx modules without specifying file extensions
@@ -122,7 +117,6 @@ var browserifyTask = function (options) {
     // we develop. When deploying, the dependencies will be included 
     // in the application bundle
     if (buildSettings.development) {
-
         var vendorsBundler = browserify({
             debug: true,
             require: dependencies
@@ -148,12 +142,23 @@ var browserifyTask = function (options) {
             .pipe(gulp.dest(jsDeployDir))
             .pipe(notify(function () {
                 gutil.log('Browserify: Vendor.js bundle built in ' + (Date.now() - start) + 'ms');
+                
+                // this is a bit of a hack. I'm firing up the server at this point because in this demo app, the vendors
+                // bundle always finishes last because the main app is so simple.
+                connect.server({
+                    root: deployDir,
+                    port: 8889
+                });
+                
+                open('http://localhost:8889/index.html');
+                
             }));
     }
 }
 
 gulp.task('css', ['clean-css'], function (done) {
     return gulp.src(cssSrcDir)
+        .pipe(livereload())
         .pipe(gulp.dest(cssDeployDir));
 });
 
